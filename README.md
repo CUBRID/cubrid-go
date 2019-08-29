@@ -1,12 +1,10 @@
 # cubrid-go
 CUBRID Go Driver on top of CCI
 > Export following environment variables to build go applications
-<pre>
-<code>
+```
 export CGO_CFLAGS="-I$CUBRID/include"
 export CGO_LDFLAGS="-L$CUBRID/lib -lcascci -lnsl -lpthread -lrt"
-</code>
-</pre>
+```
 The following code is an example application using CUBRID go driver.
 
 <pre>
