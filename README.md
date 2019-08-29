@@ -1,7 +1,6 @@
 # cubrid-go
 CUBRID Go Driver on top of CCI
-
-Export the following environment variables for building go applications
+> Export following environment variables to build go applications
 <pre>
 <code>
 export CGO_CFLAGS="-I$CUBRID/include"
