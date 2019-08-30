@@ -16,7 +16,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"time"
-	"fmt"
 )
 
 type cub_conn struct {
@@ -73,8 +72,6 @@ func (c *cub_conn) Prepare(query string) (driver.Stmt, error) {
 
 	sql := C.CString(query)
 	res = C.cci_prepare(C.int(c.handle), sql, flag, &err_buf)
-
-	fmt.Printf("cci_prepared called ... %s\n", query)
 
 	if res < 0 {
 		err := errors.New(C.GoString(&err_buf.err_msg[0]))
