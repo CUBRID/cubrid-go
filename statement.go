@@ -18,7 +18,6 @@ import (
 	"errors"
 	"reflect"
 	"unsafe"
-	"fmt"
 )
 
 type cub_stmt struct {
@@ -120,8 +119,6 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 			return nil, err
 		}
 		rows.result.affected_rows = int64(res)
-
-		fmt.Printf("Query: rows.result.affected_rows = %d\n", rows.result.affected_rows)
 
 		res = C.cci_fetch_size(handle, 100)
 		if int(res) < 0 {

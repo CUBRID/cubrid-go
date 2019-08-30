@@ -18,7 +18,6 @@ import (
 	"unsafe"
 	"strconv"
 	"time"
-	"fmt"
 	"encoding/hex"
 )
 
@@ -101,7 +100,6 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 				dest[i], err = time.Parse("2006-01-02 15:04:05", string(v))
 			case C.CCI_U_TYPE_BLOB:
 				n := C.cci_blob_size(blob)
-				fmt.Printf("cub_rows.Next: blob size = %d\n", n)
 				res = C.cci_blob_read(C.int(r.conn), blob, blob_start, C.int(n), &blob_data[0], &err_buf)
 				if res < 0 {
 					err = errors.New(C.GoString(&err_buf.err_msg[0]))
