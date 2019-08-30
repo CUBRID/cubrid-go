@@ -18,7 +18,6 @@ import (
 	"errors"
 	"reflect"
 	"unsafe"
-	"fmt"
 )
 
 type cub_stmt struct {
@@ -80,10 +79,6 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 
 	handle = C.int(s.handle)
 	flag = C.char(s.flag)
-
-	fmt.Printf("size of T_CCI_COL_INFO = %d\n", C.sizeof_T_CCI_COL_INFO)
-	fmt.Printf("size of T_CCI_COL9x_INFO = %d\n", C.sizeof_T_CCI_COL9x_INFO)
-	fmt.Printf("size of T_CCI_COL10_INFO = %d\n", C.sizeof_T_CCI_COL10_INFO)
 
 	col_info = C.cci_get_result_info(handle, &stmt_type, &col_nums)
 
