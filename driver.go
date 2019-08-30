@@ -13,7 +13,6 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"fmt"
 )
 
 // CubridDriver is exported to make the driver directly accessible.
@@ -27,7 +26,6 @@ func (d CubridDriver) Open(conn_url string) (driver.Conn, error) {
 		url: &conn_url,
 	}
 
-	fmt.Printf("cubrid/driver.Open called\n")
 	return c.Connect(context.Background())
 }
 
