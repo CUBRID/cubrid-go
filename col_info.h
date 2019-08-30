@@ -27,5 +27,24 @@ typedef struct
     char is_reverse_index;
     char is_reverse_unique;
     char is_shared;
-  } T_CCI_COLUMN_INFO;
+  } T_CCI_COL9x_INFO;
+
+typedef struct
+  {
+    T_CCI_U_EXT_TYPE ext_type;
+    char is_non_null;
+    short scale;
+    int precision;
+    char *col_name;
+    char *real_attr;
+    char *class_name;
+    char *default_value;
+    char is_auto_increment;
+    char is_unique_key;
+    char is_primary_key;
+    char is_foreign_key;
+    char is_reverse_index;
+    char is_reverse_unique;
+    char is_shared;
+  } T_CCI_COL10_INFO;
 
