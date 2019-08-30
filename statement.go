@@ -10,6 +10,7 @@
 package cubrid
 
 // #include <cas_cci.h>
+// #include <col_info.h>
 import "C"
 
 import (
@@ -73,7 +74,7 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 	var err_buf	C.T_CCI_ERROR
 	var col_nums	C.int
 	var col_info*	C.T_CCI_COL_INFO
-	var ci		[]C.T_CCI_COL_INFO
+	var ci		[]C.T_CCI_COLUMN_INFO
 	var stmt_type	C.T_CCI_CUBRID_STMT
 
 	handle = C.int(s.handle)
@@ -87,7 +88,7 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 		Cap:	C.sizeof_T_CCI_COL_INFO,
 	}
 
-	ci = *(*[]C.T_CCI_COL_INFO)(unsafe.Pointer(&hdr))
+	ci = *(*[]C.T_CCI_COLUMN_INFO)(unsafe.Pointer(&hdr))
 
 	if ci != nil {
 		col_list := make([]cub_col, col_nums)
