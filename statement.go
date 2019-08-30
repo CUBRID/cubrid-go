@@ -18,6 +18,7 @@ import (
 	"errors"
 	"reflect"
 	"unsafe"
+	"fmt"
 )
 
 type cub_stmt struct {
@@ -73,11 +74,16 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 	var err_buf	C.T_CCI_ERROR
 	var col_nums	C.int
 	var col_info*	C.T_CCI_COL_INFO
-	var ci		[]C.T_CCI_COLUMN_INFO
+	var ci9x	[]C.T_CCI_COL9x_INFO = nil
+	var ci10	[]C.T_CCI_COL10_INFO = nil
 	var stmt_type	C.T_CCI_CUBRID_STMT
 
 	handle = C.int(s.handle)
 	flag = C.char(s.flag)
+
+	fmt.Printf("size of T_CCI_COL_INFO = %d\n", C.sizeof_T_CCI_COL_INFO)
+	fmt.Printf("size of T_CCI_COL9x_INFO = %d\n", C.sizeof_T_CCI_COL9x_INFO)
+	fmt.Printf("size of T_CCI_COL10_INFO = %d\n", C.sizeof_T_CCI_COL10_INFO)
 
 	col_info = C.cci_get_result_info(handle, &stmt_type, &col_nums)
 
@@ -87,17 +93,31 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 		Cap:	C.sizeof_T_CCI_COL_INFO,
 	}
 
-	ci = *(*[]C.T_CCI_COLUMN_INFO)(unsafe.Pointer(&hdr))
+	if C.sizeof_T_CCI_COL_INFO == C.sizeof_T_CCI_COL9x_INFO {
+		ci9x = *(*[]C.T_CCI_COL9x_INFO)(unsafe.Pointer(&hdr))
+	} else {
+		ci10 = *(*[]C.T_CCI_COL10_INFO)(unsafe.Pointer(&hdr))
+	}
 
-	if ci != nil {
+	if ci9x != nil || ci10 != nil {
 		col_list := make([]cub_col, col_nums)
 		name_list := make([]string, col_nums)
-		for i:= 0; i < int(col_nums); i++ {
-			name_list[i] = C.GoString(ci[i].col_name)
-			col_list[i].table = C.GoString(ci[i].class_name)
-			col_list[i].col_type = byte(ci[i].ext_type)
-			col_list[i].scale = int(ci[i].scale)
-			col_list[i].precision = int(ci[i].precision)
+		if ci9x != nil {
+			for i:= 0; i < int(col_nums); i++ {
+				name_list[i] = C.GoString(ci9x[i].col_name)
+				col_list[i].table = C.GoString(ci9x[i].class_name)
+				col_list[i].col_type = byte(ci9x[i].ext_type)
+				col_list[i].scale = int(ci9x[i].scale)
+				col_list[i].precision = int(ci9x[i].precision)
+			}
+		} else {
+			for i:= 0; i < int(col_nums); i++ {
+				name_list[i] = C.GoString(ci10[i].col_name)
+				col_list[i].table = C.GoString(ci10[i].class_name)
+				col_list[i].col_type = byte(ci10[i].ext_type)
+				col_list[i].scale = int(ci10[i].scale)
+				col_list[i].precision = int(ci10[i].precision)
+			}
 		}
 
 		rs := &cub_result {
