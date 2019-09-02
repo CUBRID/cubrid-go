@@ -31,7 +31,7 @@ typedef struct
 
 typedef struct
   {
-    T_CCI_U_EXT_TYPE ext_type;
+    unsigned char ext_type;
     char is_non_null;
     short scale;
     int precision;
