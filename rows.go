@@ -50,11 +50,12 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 	var err_buf	C.T_CCI_ERROR
 	var indicator	C.int
 	var value*	byte
-	var blob_data	[1024]C.char
+	var lob_data	[1024]C.char
 	var blob	C.T_CCI_BLOB
+	var clob	C.T_CCI_CLOB
 	var v		[]byte = nil
 	var err		error = nil
-	var blob_start	C.longlong = 0
+	var lob_start	C.longlong = 0
 
 	res := C.cci_cursor(C.int(r.handle), 1, 1, &err_buf)
 	if (res < 0) {
@@ -69,12 +70,19 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 	for i := range dest {
 		if r.result.columns[i].col_type == C.CCI_U_TYPE_BLOB {
 			res = C.cci_get_data(C.int(r.handle), C.int(i + 1), C.CCI_A_TYPE_BLOB, unsafe.Pointer(&blob), &indicator)
+		} else if r.result.columns[i].col_type == C.CCI_U_TYPE_CLOB {
+			res = C.cci_get_data(C.int(r.handle), C.int(i + 1), C.CCI_A_TYPE_CLOB, unsafe.Pointer(&clob), &indicator)
 		} else {
 			res = C.cci_get_data(C.int(r.handle), C.int(i + 1), C.CCI_A_TYPE_STR, unsafe.Pointer(&value), &indicator)
-			if indicator > 0 {
-				v = C.GoBytes(unsafe.Pointer(value), indicator)
-			}
 		}
+
+		if indicator > 0 {
+			v = C.GoBytes(unsafe.Pointer(value), indicator)
+		} else {
+			dest[i] = nil
+			continue
+		}
+
 		switch r.result.columns[i].col_type {
 			case C.CCI_U_TYPE_BIT, C.CCI_U_TYPE_VARBIT:
 				dst := make([]byte, hex.DecodedLen(len(v)))
@@ -100,20 +108,25 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 				dest[i], err = time.Parse("2006-01-02 15:04:05", string(v))
 			case C.CCI_U_TYPE_BLOB:
 				n := C.cci_blob_size(blob)
-				res = C.cci_blob_read(C.int(r.conn), blob, blob_start, C.int(n), &blob_data[0], &err_buf)
+				res = C.cci_blob_read(C.int(r.conn), blob, lob_start, C.int(n), &lob_data[0], &err_buf)
 				if res < 0 {
 					err = errors.New(C.GoString(&err_buf.err_msg[0]))
 				} else {
-					dest[i] = C.GoBytes(unsafe.Pointer(&blob_data[0]), C.int(n))
+					dest[i] = C.GoBytes(unsafe.Pointer(&lob_data[0]), C.int(n))
 				}
 			case C.CCI_U_TYPE_CLOB:
-				dest[i] = nil
+				n := C.cci_clob_size(clob)
+				res = C.cci_clob_read(C.int(r.conn), clob, lob_start, C.int(n), &lob_data[0], &err_buf)
+				if res < 0 {
+					err = errors.New(C.GoString(&err_buf.err_msg[0]))
+				} else {
+					dest[i] = C.GoBytes(unsafe.Pointer(&lob_data[0]), C.int(n))
+				}
 			default:
 				dest[i] = string(v)
 		}
-
-		//fmt.Println(dest[i])
 	}
+
 	return err
 }
 
