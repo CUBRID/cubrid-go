@@ -28,18 +28,18 @@ func main() {
         }
         defer db.Close()
 
-        var id  int
-        var a_bit       []byte
-        var b_vbit      []byte
-        var c_num       float64
-        var d_float     float32
-        var e_double    float64
-        var f_date      time.Time
-        var g_time      time.Time
-        var g_timest    time.Time
-        var h_set       string
-        var i_bigint    int64
-        var j_datetm    time.Time
+        var id  int     sql.NullInt64
+        var a_bit       cubrid.NullByte
+        var b_vbit      cubrid.NullByte
+        var c_num       sql.NullFloat64
+        var d_float     sql.NullFloat64
+        var e_double    sql.NullFloat64
+        var f_date      cubrid.NullTime
+        var g_time      cubrid.NullTime
+        var g_timest    cubrid.NullTime
+        var h_set       sql.NullString
+        var i_bigint    sql.NullInt64
+        var j_datetm    cubrid.NullTime
         var k_blob      sql.NullString
         var l_clob      sql.NullString
 
