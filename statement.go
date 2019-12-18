@@ -18,6 +18,7 @@ import (
 	"errors"
 	"reflect"
 	"unsafe"
+	"time"
 )
 
 type cub_stmt struct {
@@ -47,10 +48,57 @@ func (s *cub_stmt) NumInput() int {
 	return s.params
 }
 
+func (s *cub_stmt) bind(args []driver.Value) int {
+	var handle	C.int
+	var parmNum	C.int
+	var pLonglong	C.longlong
+	var pDouble	C.double
+	var pString	*C.char
+
+	handle = C.int(s.handle)
+	for i, arg := range args {
+		parmNum = C.int(i) + 1
+		switch v := arg.(type) {
+			case int64:
+				pLonglong = C.longlong(v)
+				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BIGINT,
+					unsafe.Pointer(&pLonglong), C.CCI_U_TYPE_BIGINT, C.CCI_BIND_PTR);
+			case float64:
+				pDouble = C.double(v)
+				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_DOUBLE,
+					unsafe.Pointer(&pDouble), C.CCI_U_TYPE_DOUBLE, C.CCI_BIND_PTR);
+			case string:
+				pString = C.CString(v)
+				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
+					unsafe.Pointer(pString), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
+			case []byte:
+				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
+					unsafe.Pointer(&v[0]), C.CCI_U_TYPE_BLOB, C.CCI_BIND_PTR);
+			case time.Time:
+				pString = C.CString(v.Format("2006-01-02 15:04:05.000"))
+				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
+					unsafe.Pointer(pString), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
+			default:
+				return -1
+		}
+	}
+
+	return 0
+}
+
 func (s *cub_stmt) Exec(args []driver.Value) (driver.Result, error) {
 	var handle	C.int
 	var flag	C.char
 	var err_buf	C.T_CCI_ERROR
+
+	s.params = len(args)
+
+	if len(args) > 0 {
+		if (s.bind(args) < 0) {
+			err := errors.New("Exec: some parameter cannot be converted to vaild DB type")
+			return nil, err
+		}
+	}
 
 	handle = C.int(s.handle)
 	flag = C.char(s.flag)
@@ -77,9 +125,17 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 	var ci10	[]C.T_CCI_COL10_INFO = nil
 	var stmt_type	C.T_CCI_CUBRID_STMT
 
+	s.params = len(args)
+
+	if len(args) > 0 {
+		if s.bind(args) < 0 {
+			err := errors.New("Query: some parameter cannot be converted to vaild DB type")
+			return nil, err
+		}
+	}
+
 	handle = C.int(s.handle)
 	flag = C.char(s.flag)
-
 	col_info = C.cci_get_result_info(handle, &stmt_type, &col_nums)
 
 	hdr := reflect.SliceHeader {
