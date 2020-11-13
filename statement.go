@@ -18,6 +18,7 @@ import (
 	"errors"
 	"reflect"
 	"unsafe"
+	"strconv"
 	"time"
 )
 
@@ -79,7 +80,7 @@ func (s *cub_stmt) bind(args []driver.Value) int {
 				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
 					unsafe.Pointer(pString), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
 			default:
-				return -1
+				return 0
 		}
 	}
 
@@ -90,6 +91,8 @@ func (s *cub_stmt) Exec(args []driver.Value) (driver.Result, error) {
 	var handle	C.int
 	var flag	C.char
 	var err_buf	C.T_CCI_ERROR
+	var last_insert_id_ptr *C.char
+	var last_insert_id int = 0
 
 	s.params = len(args)
 
@@ -109,9 +112,15 @@ func (s *cub_stmt) Exec(args []driver.Value) (driver.Result, error) {
 		return nil, err
 	}
 
+	cci_ret := C.cci_get_last_insert_id(C.int(s.conn.handle), unsafe.Pointer(&last_insert_id_ptr), &err_buf)
+
+	if C.int(cci_ret) == 0 {
+		last_insert_id, _ = strconv.Atoi(C.GoString(last_insert_id_ptr))
+	}
+
 	return &cub_result {
 		affected_rows: int64(res),
-		last_insert: 0,
+		last_insert: int64(last_insert_id),
 	}, nil
 }
 
