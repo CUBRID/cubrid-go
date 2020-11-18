@@ -93,7 +93,7 @@ func (s *cub_stmt) bind(args []driver.Value) int {
 				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
 					unsafe.Pointer(nil), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
 			default:
-				return 0
+				break
 		}
 	}
 
@@ -160,10 +160,11 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 	flag = C.char(s.flag)
 	col_info = C.cci_get_result_info(handle, &stmt_type, &col_nums)
 
+	length := int(col_nums)
 	hdr := reflect.SliceHeader {
 		Data:	uintptr(unsafe.Pointer(col_info)),
-		Len:	C.sizeof_T_CCI_COL_INFO,
-		Cap:	C.sizeof_T_CCI_COL_INFO,
+		Len:	length,
+		Cap:	length,
 	}
 
 	if C.sizeof_T_CCI_COL_INFO == C.sizeof_T_CCI_COL9x_INFO {
