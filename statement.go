@@ -20,6 +20,7 @@ import (
 	"unsafe"
 	"strconv"
 	"time"
+	"fmt"
 )
 
 type cub_stmt struct {
@@ -57,6 +58,7 @@ func (s *cub_stmt) bind(args []driver.Value) int {
 	var pString	*C.char
 	var blob	C.T_CCI_BLOB
 	var err		C.T_CCI_ERROR
+	var ret		C.int = 0
 
 	handle = C.int(s.handle)
 	for i, arg := range args {
@@ -64,40 +66,49 @@ func (s *cub_stmt) bind(args []driver.Value) int {
 		switch v := arg.(type) {
 			case int64:
 				pLonglong = C.longlong(v)
-				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BIGINT,
+				ret = C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BIGINT,
 					unsafe.Pointer(&pLonglong), C.CCI_U_TYPE_BIGINT, C.CCI_BIND_PTR);
 			case float64:
 				pDouble = C.double(v)
-				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_DOUBLE,
+				ret = C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_DOUBLE,
 					unsafe.Pointer(&pDouble), C.CCI_U_TYPE_DOUBLE, C.CCI_BIND_PTR);
 			case string:
 				pString = C.CString(v)
-				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
+				ret = C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
 					unsafe.Pointer(pString), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
 			case []byte:
 				if v != nil {
 					size := len (v)
-					C.cci_blob_new(C.int(s.conn.handle), &blob, &err)
-					C.cci_blob_write(C.int(s.conn.handle), blob, 0, C.int(size), (*C.char) (unsafe.Pointer(&v[0])), &err)
-					C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
+					if ret = C.cci_blob_new(C.int(s.conn.handle), &blob, &err); ret < 0 {
+						break
+					}
+					if ret = C.cci_blob_write(C.int(s.conn.handle), blob, 0, C.int(size), (*C.char) (unsafe.Pointer(&v[0])), &err); ret < 0 {
+						break
+					}
+					ret = C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
 						unsafe.Pointer(blob), C.CCI_U_TYPE_BLOB, C.CCI_BIND_PTR);
 				} else {
-					C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
+					ret = C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
 						unsafe.Pointer(nil), C.CCI_U_TYPE_BLOB, C.CCI_BIND_PTR);
 				}
 			case time.Time:
 				pString = C.CString(v.Format("2006-01-02 15:04:05.000"))
-				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
+				ret = C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
 					unsafe.Pointer(pString), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
 			case nil:
-				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
+				ret = C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
 					unsafe.Pointer(nil), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
 			default:
+				ret = C.CCI_ER_ATYPE
 				break
+		}
+
+		if ret < 0 {
+			break
 		}
 	}
 
-	return 0
+	return int(ret)
 }
 
 func (s *cub_stmt) Exec(args []driver.Value) (driver.Result, error) {
@@ -110,8 +121,9 @@ func (s *cub_stmt) Exec(args []driver.Value) (driver.Result, error) {
 	s.params = len(args)
 
 	if len(args) > 0 {
-		if (s.bind(args) < 0) {
-			err := errors.New("Exec: some parameter cannot be converted to vaild DB type")
+		if ret:= s.bind(args); ret < 0 {
+			msg := fmt.Sprintf("Exec[%d]: some parameter cannot be converted to vaild DB type", ret)
+			err := errors.New(msg)
 			return nil, err
 		}
 	}
