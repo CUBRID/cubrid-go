@@ -82,7 +82,7 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 
 		if indicator > 0 {
 			v = C.GoBytes(unsafe.Pointer(value), indicator)
-		} else {
+		} else if indicator < 0 || !(r.result.columns[i].col_type == C.CCI_U_TYPE_BLOB || r.result.columns[i].col_type == C.CCI_U_TYPE_CLOB) {
 			dest[i] = nil
 			continue
 		}
@@ -141,4 +141,3 @@ func (r *cub_result) LastInsertId() (int64, error) {
 func (r *cub_result) RowsAffected() (int64, error) {
 	return r.affected_rows, nil
 }
-
