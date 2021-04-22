@@ -15,6 +15,7 @@ import "C"
 import (
 	"database/sql/driver"
 	"errors"
+	"io"
 	"unsafe"
 	"strconv"
 	"time"
@@ -59,6 +60,9 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 
 	res := C.cci_cursor(C.int(r.handle), 1, 1, &err_buf)
 	if (res < 0) {
+		if (res == C.CCI_ER_NO_MORE_DATA) {
+			return io.EOF
+		}
 		return errors.New(C.GoString(&err_buf.err_msg[0]))
 	}
 
