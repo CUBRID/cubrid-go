@@ -162,8 +162,9 @@ func (s *cub_stmt) Query(args []driver.Value) (driver.Rows, error) {
 	s.params = len(args)
 
 	if len(args) > 0 {
-		if s.bind(args) < 0 {
-			err := errors.New("Query: some parameter cannot be converted to vaild DB type")
+		if ret:= s.bind(args); ret < 0 {
+			msg := fmt.Sprintf("Query[%d]: some parameter cannot be converted to vaild DB type", ret)
+			err := errors.New(msg)
 			return nil, err
 		}
 	}
