@@ -79,6 +79,9 @@ func (s *cub_stmt) bind(args []driver.Value) int {
 				pString = C.CString(v.Format("2006-01-02 15:04:05.000"))
 				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
 					unsafe.Pointer(pString), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
+			case nil:
+				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
+					unsafe.Pointer(nil), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
 			default:
 				return 0
 		}
