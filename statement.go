@@ -55,6 +55,8 @@ func (s *cub_stmt) bind(args []driver.Value) int {
 	var pLonglong	C.longlong
 	var pDouble	C.double
 	var pString	*C.char
+	var blob	C.T_CCI_BLOB
+	var err		C.T_CCI_ERROR
 
 	handle = C.int(s.handle)
 	for i, arg := range args {
@@ -73,8 +75,16 @@ func (s *cub_stmt) bind(args []driver.Value) int {
 				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
 					unsafe.Pointer(pString), C.CCI_U_TYPE_STRING, C.CCI_BIND_PTR);
 			case []byte:
-				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
-					unsafe.Pointer(&v[0]), C.CCI_U_TYPE_BLOB, C.CCI_BIND_PTR);
+				if v != nil {
+					size := len (v)
+					C.cci_blob_new(C.int(s.conn.handle), &blob, &err)
+					C.cci_blob_write(C.int(s.conn.handle), blob, 0, C.int(size), (*C.char) (unsafe.Pointer(&v[0])), &err)
+					C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
+						unsafe.Pointer(blob), C.CCI_U_TYPE_BLOB, C.CCI_BIND_PTR);
+				} else {
+					C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_BLOB,
+						unsafe.Pointer(nil), C.CCI_U_TYPE_BLOB, C.CCI_BIND_PTR);
+				}
 			case time.Time:
 				pString = C.CString(v.Format("2006-01-02 15:04:05.000"))
 				C.cci_bind_param (handle, parmNum, C.CCI_A_TYPE_STR,
