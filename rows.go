@@ -15,6 +15,7 @@ import "C"
 import (
 	"database/sql/driver"
 	"errors"
+	"io"
 	"unsafe"
 	"strconv"
 	"time"
@@ -59,6 +60,9 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 
 	res := C.cci_cursor(C.int(r.handle), 1, 1, &err_buf)
 	if (res < 0) {
+		if (res == C.CCI_ER_NO_MORE_DATA) {
+			return io.EOF
+		}
 		return errors.New(C.GoString(&err_buf.err_msg[0]))
 	}
 
@@ -78,7 +82,7 @@ func (r *cub_rows) Next(dest []driver.Value) error {
 
 		if indicator > 0 {
 			v = C.GoBytes(unsafe.Pointer(value), indicator)
-		} else {
+		} else if indicator < 0 || !(r.result.columns[i].col_type == C.CCI_U_TYPE_BLOB || r.result.columns[i].col_type == C.CCI_U_TYPE_CLOB) {
 			dest[i] = nil
 			continue
 		}
@@ -137,4 +141,3 @@ func (r *cub_result) LastInsertId() (int64, error) {
 func (r *cub_result) RowsAffected() (int64, error) {
 	return r.affected_rows, nil
 }
-
